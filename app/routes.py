@@ -1,14 +1,19 @@
 from app.forms import LoginForm
-from flask import render_template, flash, redirect
+from flask import render_template, flash, redirect, url_for
 
 from app import app  # 从app包中导入 app这个实例
+from flask_login import current_user, login_user
+from app.models import User
+from flask_login import logout_user
+from flask_login import login_required
 
 
 # 2个路由
 @app.route('/')
 @app.route('/index')
+# @login_required
 def index():
-    user = {'username': '张三'}  # 用户
+    # user = {'username': '张三'}  # 用户
     posts = [  # 创建一个列表：帖子。里面元素是两个字典，每个字典里元素还是字典，分别作者、帖子内容。
         {
             'author': {'username': '张三'},
@@ -23,13 +28,27 @@ def index():
             'body': '今天是10月24！1024程序员节日！'
         }
     ]
-    return render_template('index.html', title='Home', user=user, posts=posts)
+    # return render_template('index.html', title='Home', user=user, posts=posts)
+    return render_template('index.html', title='Home', posts=posts)
 
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    if current_user.is_authenticated:  # 如果已登录重定向至index
+        return redirect(url_for('index'))
+
     form = LoginForm()
     if form.validate_on_submit():
-        flash('Login requested for user {},remember_me={}'.format(form.username.data, form.remember_me.data))
-        return redirect('/index')
+        user = User.query.filter_by(username=form.username.data).first()  # 判断用户是否存在
+        if user is None or not user.check_password(form.password.data):  # 判断密码是否存在
+            flash('Invalid username or password')
+            return redirect(url_for('login'))
+        login_user(user, remember=form.remember_me.data)
+        return redirect(url_for('index'))
     return render_template('login.html', title='Sign In', form=form)
+
+
+@app.route('/logout')
+def logout():
+    logout_user()
+    return redirect(url_for('index'))

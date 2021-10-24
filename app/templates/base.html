@@ -9,8 +9,12 @@
 	<body style="background:azure">
 		<div>
 			Microblog:
-			<a href="/index">主页</a>
-			<a href="/login">登录</a>
+			<a href="{{ url_for('index') }}">主页</a>
+			{% if current_user.is_anonymous %}
+			<a href="{{ url_for('login') }}">登录</a>
+			{% else %}
+			<a href="{{ url_for('logout') }}">退出</a>
+			{% endif %}
 		</div>
 <!--		<div>Microblog:<a href="/index">Home</a></div>-->
 		<hr>
