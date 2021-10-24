@@ -1,17 +1,20 @@
 from app.forms import LoginForm
-from flask import render_template, flash, redirect, url_for
+from flask import render_template, flash, redirect, url_for, request
 
 from app import app  # 从app包中导入 app这个实例
 from flask_login import current_user, login_user
 from app.models import User
 from flask_login import logout_user
 from flask_login import login_required
+from werkzeug.urls import url_parse
+from app import db
+from app.forms import RegistrationForm
 
 
 # 2个路由
 @app.route('/')
 @app.route('/index')
-# @login_required
+@login_required
 def index():
     # user = {'username': '张三'}  # 用户
     posts = [  # 创建一个列表：帖子。里面元素是两个字典，每个字典里元素还是字典，分别作者、帖子内容。
@@ -44,7 +47,12 @@ def login():
             flash('Invalid username or password')
             return redirect(url_for('login'))
         login_user(user, remember=form.remember_me.data)
-        return redirect(url_for('index'))
+
+        # 重定向到 next 页面
+        next_page = request.args.get('next')
+        if not next_page or url_parse(next_page).netloc != '':
+            next_page = url_for('index')
+        return redirect(next_page)
     return render_template('login.html', title='Sign In', form=form)
 
 
@@ -52,3 +60,19 @@ def login():
 def logout():
     logout_user()
     return redirect(url_for('index'))
+
+
+# 注册功能
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
+    form = RegistrationForm()
+    if form.validate_on_submit():
+        user = User(username=form.username.data, email=form.email.data)
+        user.set_password(form.password.data)
+        db.session.add(user)
+        db.session.commit()
+        flash('Congratulations, you are now a registered user!')
+        return redirect(url_for('login'))
+    return render_template('register.html', title='Register', form=form)
