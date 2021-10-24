@@ -6,8 +6,13 @@
 			<title>Welcome to Microblog</title>
 		{% endif %}
 	</head>
-	<body>
-		<div>Microblog:<a href="/index">Home</a></div>
+	<body style="background:azure">
+		<div>
+			Microblog:
+			<a href="/index">主页</a>
+			<a href="/login">登录</a>
+		</div>
+<!--		<div>Microblog:<a href="/index">Home</a></div>-->
 		<hr>
 		{% block content %}
 		{% endblock %}
