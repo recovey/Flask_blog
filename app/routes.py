@@ -9,6 +9,7 @@ from flask_login import login_required
 from werkzeug.urls import url_parse
 from app import db
 from app.forms import RegistrationForm
+from datetime import datetime
 
 
 # 2个路由
@@ -76,3 +77,21 @@ def register():
         flash('Congratulations, you are now a registered user!')
         return redirect(url_for('login'))
     return render_template('register.html', title='Register', form=form)
+
+
+@app.route('/user/<username>')
+@login_required
+def user(username):
+    user = User.query.filter_by(username=username).first_or_404()
+    posts = [
+        {'author':user, 'body':'Test post #1'},
+        {'author':user, 'body':'Test post #2'}
+    ]
+    return render_template('user.html', user=user, posts=posts)
+
+
+@app.before_request  # 访问任意一个函数都会执行这里
+def before_request():
+    if current_user.is_authenticated:
+        current_user.last_seen = datetime.utcnow()
+        db.session.commit()
