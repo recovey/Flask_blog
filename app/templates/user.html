@@ -6,16 +6,32 @@
         <td><img src="{{ user.avatar(128) }}"></td>
         <td>
             <h1>User:{{ user.username }}</h1>
-                {% if user.about_me %}
+            {% if user.about_me %}
             <p>{{ user.about_me }}</p>
-                {% endif %}
+            {% endif %}
 
-                {% if user.last_seen %}
+            {% if user.last_seen %}
             <p>Last seen on:{{ user.last_seen }}</p>
-                {% endif %}
+            {% endif %}
+
+            <p>{{ user.followers.count() }} 关注  {{ user.followed.count() }} 粉丝</p>
             {% if user == current_user %} <!--只有登录了才能修改，也就是只有登录了才能看到这里-->
             <p>
-                <a href="{{ url_for('edit_profile') }}">Edit your profile</a>
+                <a href="{{ url_for('edit_profile') }}">编辑个人资料</a>
+            </p>
+            {% elif not current_user.is_following(user) %}
+            <p>
+            <form action="{{ url_for('follow', username=user.username) }}" method="post">
+                {{ form.hidden_tag() }}
+                {{ form.submit(value='Follow') }}
+            </form>
+            </p>
+            {% else %}
+            <p>
+            <form action="{{ url_for('unfollow', username=user.username) }}" method="post">
+                {{ form.hidden_tag() }}
+                {{ form.submit(value='Unfollow') }}
+            </form>
             </p>
             {% endif %}
         </td>
@@ -27,3 +43,5 @@
 {% include '_post.html' %}
 {% endfor%}
 {% endblock%}
+
+
