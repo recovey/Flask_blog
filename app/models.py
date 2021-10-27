@@ -1,4 +1,5 @@
 from hashlib import md5
+from idlelib.iomenu import encoding
 
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -6,6 +7,9 @@ from app import db
 from datetime import datetime
 from app import login
 from flask_login import UserMixin
+from time import time
+import jwt
+from app import app
 
 
 @login.user_loader
@@ -43,14 +47,14 @@ class User(UserMixin, db.Model):
         if self.is_following(user):
             self.followed.remove(user)
 
-    def is_following(self, user):
-        return self.followed.filter(followers.c.followed_id == user.id).count() > 0
-
-    def followed_posts(self):
-        return Post.query.join(
-            followers, (followers.c.followed_id == Post.user_id)).filter(
-            followers.c.follower_id == self.id).order_by(
-            Post.timestamp.desc())
+    # def is_following(self, user):
+    #     return self.followed.filter(followers.c.followed_id == user.id).count() > 0
+    #
+    # def followed_posts(self):
+    #     return Post.query.join(
+    #         followers, (followers.c.followed_id == Post.user_id)).filter(
+    #         followers.c.follower_id == self.id).order_by(
+    #         Post.timestamp.desc())
 
     last_seen = db.Column(db.DateTime, default=datetime.utcnow)
 
@@ -83,6 +87,20 @@ class User(UserMixin, db.Model):
             followers.c.follower_id == self.id)
         own = Post.query.filter_by(user_id=self.id)
         return followed.union(own).order_by(Post.timestamp.desc())
+
+    def get_reset_password_token(self, expires_in=600):
+        return jwt.encode(
+            {'reset_password': self.id, 'exp': time() + expires_in},
+            app.config['SECRET_KEY'], algorithm='HS256')#.decode('utf-8')#.decode(encoding)
+
+    @staticmethod
+    def verify_reset_password_token(token):
+        try:
+            id = jwt.decode(token, app.config['SECRET_KEY'],
+                            algorithms=['HS256'])['reset_password']
+        except:
+            return
+        return User.query.get(id)
 
 
 class Post(db.Model):  # UserMixin,
