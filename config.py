@@ -11,7 +11,7 @@ class Config:
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URI') or 'sqlite:///' + os.path.join(basedir, 'app.db')  # 创建数据库
     SQLALCHEMY_TRACK_MODIFICATIONS = False  # 增强性能
 
-    POSTS_PER_PAGE = 3  # 不知道干嘛的
+    POSTS_PER_PAGE = 3  # 每页显示几条博客
 
     MAIL_SERVER = os.environ.get('MAIL_SERVER')
     MAIL_PORT = int(os.environ.get('MAIL_PORT') or 25)

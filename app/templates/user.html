@@ -14,7 +14,7 @@
             <p>Last seen on:{{ user.last_seen }}</p>
             {% endif %}
 
-            <p>{{ user.followers.count() }} 关注  {{ user.followed.count() }} 粉丝</p>
+            <p>{{ user.followers.count() }} 关注 {{ user.followed.count() }} 粉丝</p>
             {% if user == current_user %} <!--只有登录了才能修改，也就是只有登录了才能看到这里-->
             <p>
                 <a href="{{ url_for('edit_profile') }}">编辑个人资料</a>
@@ -39,9 +39,15 @@
 </table>
 
 <hr>
-{% for post in posts %}
-{% include '_post.html' %}
-{% endfor%}
-{% endblock%}
+    {% for post in posts %}
+        {% include '_post.html' %}
+    {% endfor %}
 
+	{% if prev_url %}
+		<a href="{{ prev_url }}">上一页</a>
+    {% endif %}
+	{% if next_url %}
+		<a href="{{ next_url }}">下一页</a>
+	{% endif %}
+{% endblock %}
 

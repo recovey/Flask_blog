@@ -14,30 +14,47 @@ from app.forms import EmptyForm
 from app.forms import ResetPasswordRequestForm
 from app.email import send_password_reset_email
 from app.forms import ResetPasswordForm
+from app.forms import PostForm
+from app.models import Post
 
 
 # 2个路由
-@app.route('/')
-@app.route('/index')
+@app.route('/', methods=['GET', 'POST'])
+@app.route('/index', methods=['GET', 'POST'])
 @login_required
 def index():
     # user = {'username': '张三'}  # 用户
-    posts = [  # 创建一个列表：帖子。里面元素是两个字典，每个字典里元素还是字典，分别作者、帖子内容。
-        {
-            'author': {'username': '张三'},
-            'body': 'Beautiful day in Portland!'
-        },
-        {
-            'author': {'username': '李四'},
-            'body': 'The Avengers movie was so cool!'
-        },
-        {
-            'author': {'username': '王五'},
-            'body': '今天是10月24！1024程序员节日！'
-        }
-    ]
+    form = PostForm()
+    if form.validate_on_submit():  # 如果是POST请求就走这里
+        post = Post(body=form.post.data, author=current_user)
+        db.session.add(post)
+        db.session.commit()
+        flash('Your post is now live!')
+        return redirect(url_for('index'))
+    # posts = [  # 创建一个列表：帖子。里面元素是两个字典，每个字典里元素还是字典，分别作者、帖子内容。
+    #     {
+    #         'author': {'username': '张三'},
+    #         'body': 'Beautiful day in Portland!'
+    #     },
+    #     {
+    #         'author': {'username': '李四'},
+    #         'body': 'The Avengers movie was so cool!'
+    #     },
+    #     {
+    #         'author': {'username': '王五'},
+    #         'body': '今天是10月24！1024程序员节日！'
+    #     }
+    # ]
+    posts = current_user.followed_posts().all()
     # return render_template('index.html', title='Home', user=user, posts=posts)
-    return render_template('index.html', title='Home', posts=posts)
+    # return render_template('index.html', title='Home', posts=posts)
+    # return render_template("index.html", title='Home Page', form=form,posts=posts)
+    page = request.args.get('page', 1, type=int)
+    posts = current_user.followed_posts().paginate(page, app.config['POSTS_PER_PAGE'], False)
+    # return render_template('index.html', title='Home Page', form=form, posts=posts.items)
+    next_url = url_for('index', page=posts.next_num) if posts.has_next else None
+    prev_url = url_for('index', page=posts.prev_num) if posts.has_prev else None
+    return render_template('index.html', title='Home Page', form=form, posts=posts.items, next_url=next_url, prev_url=prev_url)
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -83,17 +100,33 @@ def register():
     return render_template('register.html', title='Register', form=form)
 
 
+# @app.route('/user/<username>')
+# @login_required
+# def user(username):
+#     user = User.query.filter_by(username=username).first_or_404()
+#     # posts = [
+#     #     {'author': user, 'body': 'Test post #1'},
+#     #     {'author': user, 'body': 'Test post #2'}
+#     # ]
+#     # return render_template('user.html', user=user, posts=posts)
+#     # posts = Post.query.order_by(Post.timestamp.desc()).all()  # 查询所有人的博客
+#     # posts = user.posts.order_by(Post.timestamp.desc()).all()  # 加不加.all()暂时没区别
+#     # form = EmptyForm()
+#     # return render_template('user.html', user=user, posts=posts, form=form)
+#     page = request.args.get('page', 1, type=int)
+#     posts = user.posts.order_by(Post.timestamp.desc()).paginate(page, app.config['POSTS_PER_PAGE'], False)
+#     next_url = url_for('user', username=user.username, page=posts.next_num) if posts.has_next else None
+#     prev_url = url_for('user', username=user.username, page=posts.prev_num) if posts.has_prev else None
+#     return render_template('user.html', user=user, posts=posts.items, next_url=next_url, prev_url=prev_url)
 @app.route('/user/<username>')
 @login_required
 def user(username):
     user = User.query.filter_by(username=username).first_or_404()
-    posts = [
-        {'author': user, 'body': 'Test post #1'},
-        {'author': user, 'body': 'Test post #2'}
-    ]
-    # return render_template('user.html', user=user, posts=posts)
-    form = EmptyForm()
-    return render_template('user.html', user=user, posts=posts, form=form)
+    page = request.args.get('page', 1, type=int)
+    posts = user.posts.order_by(Post.timestamp.desc()).paginate(page, app.config['POSTS_PER_PAGE'], False)
+    next_url = url_for('user', username=user.username, page=posts.next_num) if posts.has_next else None
+    prev_url = url_for('user', username=user.username, page=posts.prev_num) if posts.has_prev else None
+    return render_template('user.html', user=user, posts=posts.items, next_url=next_url, prev_url=prev_url)
 
 
 @app.before_request  # 访问任意一个函数都会执行这里
@@ -176,7 +209,7 @@ def reset_password(token):
     return render_template('reset_password.html', form=form)
 
 
-@app.route('/reset_password_request', methods=['GET','POST'])
+@app.route('/reset_password_request', methods=['GET', 'POST'])
 def reset_password_request():
     if current_user.is_authenticated:
         return redirect(url_for('index'))
@@ -190,9 +223,17 @@ def reset_password_request():
     return render_template('reset_password_request.html', title='Reset Password', form=form)
 
 
-
-
-
-
-
+@app.route('/explore')
+@login_required
+def explore():
+    # posts = Post.query.order_by(Post.timestamp.desc()).all()
+    # page = request.args.get('page', 1, type=int)
+    # posts = Post.query.order_by(Post.timestamp.desc()).paginate(page, app.config['POSTS_PER_PAGE'], False)
+    # return render_template('index.html', title='Explore', posts=posts.items)
+    # return render_template('index.html', title='Explore', posts=posts)
+    page = request.args.get('page', 1, type=int)
+    posts = Post.query.order_by(Post.timestamp.desc()).paginate(page, app.config['POSTS_PER_PAGE'], False)
+    next_url = url_for('explore', page=posts.next_num) if posts.has_next else None
+    prev_url = url_for('explore', page=posts.prev_num) if posts.has_prev else None
+    return render_template('index.html', title='Explore', posts=posts.items, next_url=next_url, prev_url=prev_url)
 
