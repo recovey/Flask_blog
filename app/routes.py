@@ -17,6 +17,10 @@ from app.forms import ResetPasswordForm
 from app.forms import PostForm
 from app.models import Post
 from flask_babel import _  # 替换数据
+from flask_babel import _, get_locale
+from guess_language import guess_language
+from flask import jsonify
+from app.translate import translate
 
 
 # 2个路由
@@ -27,7 +31,10 @@ def index():
     # user = {'username': '张三'}  # 用户
     form = PostForm()
     if form.validate_on_submit():  # 如果是POST请求就走这里
-        post = Post(body=form.post.data, author=current_user)
+        language = guess_language(form.post.data)
+        if language == 'UNKNOWN' or len(language) > 5:
+            language = ''
+        post = Post(body=form.post.data, author=current_user, language=language)
         db.session.add(post)
         db.session.commit()
         flash(_('Your post is now live!'))
@@ -242,3 +249,10 @@ def explore():
     next_url = url_for('explore', page=posts.next_num) if posts.has_next else None
     prev_url = url_for('explore', page=posts.prev_num) if posts.has_prev else None
     return render_template('index.html', title='Explore', posts=posts.items, next_url=next_url, prev_url=prev_url)
+
+
+@app.route('/translate', methods=['POST'])
+@login_required
+def translate_text():
+    return jsonify(
+        {'text': translate(request.form['text'], request.form['source_language'], request.form['dest_language'])})

@@ -24,3 +24,6 @@ class Config:
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')  # 客户端授权密码
 
     LANGUAGES = ['en', 'zh']  # 注意：不要填写zh_CN。有坑！
+
+    APPID = os.environ.get('APPID')
+    BD_TRANSLATOR_KEY = os.environ.get('BD_TRANSLATOR_KEY')
